@@ -11,5 +11,4 @@ public class SeatRequest {
     private Boolean hasSocket;
     private String Status;
     private int MaxBookingTime;
-
 }

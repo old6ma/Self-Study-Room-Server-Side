@@ -51,7 +51,7 @@ public class SeatService {
         Seat seat = new Seat();
         seat.setRoom(room);
         seat.setSeatName(seatRequest.getSeatName());
-        seat.setSeatNumber(seatRequest.getSeatName());
+        seat.setSeatNumber(seatRequest.getSeatNumber());
         seat.setHasSocket(seatRequest.getHasSocket());
 
         return seatRepository.save(seat);
@@ -87,9 +87,33 @@ public class SeatService {
         seatRepository.delete(seat);
     }
 
+//    public Seat updateSeat(Long seatId, SeatRequest seatRequest) {
+//        Seat seat = seatRepository.findById(seatId)
+//                .orElseThrow(() -> new RuntimeException("Seat not found"));
+//
+//        return seatRepository.save(seat);
+//    }
+
     public Seat updateSeat(Long seatId, SeatRequest seatRequest) {
+        // 检查seat是否存在
         Seat seat = seatRepository.findById(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
+
+        // 检查room是否存在并设置
+        Room room = roomRepository.findById(seatRequest.getRoomId())
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+        seat.setRoom(room);
+
+        // 设置其他字段
+        seat.setSeatNumber(seatRequest.getSeatNumber());
+        seat.setSeatName(seatRequest.getSeatName());
+        seat.setHasSocket(Boolean.TRUE.equals(seatRequest.getHasSocket())); // 避免 NPE
+        try {
+            seat.setStatus(Seat.SeatStatus.valueOf(seatRequest.getStatus().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid seat status: " + seatRequest.getStatus());
+        }
+        seat.setMaxBookingTime(seatRequest.getMaxBookingTime());
 
         return seatRepository.save(seat);
     }
