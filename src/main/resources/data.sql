@@ -1,0 +1,1 @@
+INSERT INTO Admin (username,password) VALUES ('root','pwd')

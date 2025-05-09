@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/self_study  # 使用文件模式存储数据
+    # 或者使用内存模式：jdbc:h2:mem:assignment_db
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+
+server:
+  error:
+    include-message: always
+  port: 8080
+
+
+jwt:
+  secret: "thisIsAVeryLongSecretKeyThatHasAtLeast32BytesForHS256Algorithm12345678"
