@@ -1,8 +1,10 @@
 package com.studyroom.service;
 
 import com.studyroom.model.Booking;
+import com.studyroom.model.Seat;
 import com.studyroom.model.Student;
 import com.studyroom.repository.BookingRepository;
+import com.studyroom.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,7 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class BookingService {
-
+    private final SeatRepository seatRepository;
     private final BookingRepository bookingRepository;
     private final RoomService roomService;
     public List<Booking> getAllBookings() {
@@ -85,18 +87,22 @@ public class BookingService {
     @Scheduled(fixedRate = 60000)
     public void monitorBookings() {
         Instant now = Instant.now();
-        Instant windowStart = now.minusSeconds(15 * 60);
+        Instant windowStart = now.minusSeconds(30 * 60);
         Instant windowEnd = now.plusSeconds(15 * 60);
         List<Booking> bookings = bookingRepository.findPendingCheckIn(windowStart, windowEnd);
-
+        System.out.println("正在持续检查是否有临近预约记录");
         for (Booking booking : bookings) {
             long minutes = ChronoUnit.MINUTES.between(booking.getStartTime(), now);
-            if (minutes == -15) {
+            if (minutes >= -15 && minutes < 0) {
                 notify(booking, "预约即将开始，请及时签到");
-            } else if (minutes == 10 && booking.getStatus()!=Booking.BookingStatus.COMPLETED) {
+            } else if (minutes >= 0&& minutes < 15 && booking.getStatus()!=Booking.BookingStatus.COMPLETED) {
                 notify(booking, "你还未签到，请尽快签到");
             } else if (minutes >= 15 && booking.getStatus()!=Booking.BookingStatus.COMPLETED && !booking.isViolationRecorded()) {
                 booking.setViolationRecorded(true);
+                Seat seat = seatRepository.findById(booking.getSeat().getId())
+                        .orElseThrow(() -> new RuntimeException("Seat not found"));
+                seat.setStatus(Seat.SeatStatus.AVAILABLE);
+                seatRepository.save(seat);
                 bookingRepository.delete(booking); // 释放座位
                 notify(booking, "预约已取消并记录违约");
             }
