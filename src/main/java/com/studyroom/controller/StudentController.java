@@ -70,7 +70,7 @@ public class StudentController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());
 
-        seatService.bookSeat(
+        bookingService.bookSeat(
                 student,
                 bookingRequest
         );

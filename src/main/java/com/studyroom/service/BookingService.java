@@ -1,9 +1,12 @@
 package com.studyroom.service;
 
+import com.studyroom.dto.BookingRequest;
 import com.studyroom.model.Booking;
+import com.studyroom.model.Room;
 import com.studyroom.model.Seat;
 import com.studyroom.model.Student;
 import com.studyroom.repository.BookingRepository;
+import com.studyroom.repository.RoomRepository;
 import com.studyroom.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BookingService {
     private final SeatRepository seatRepository;
+    private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
     private final RoomService roomService;
     public List<Booking> getAllBookings() {
@@ -37,6 +41,29 @@ public class BookingService {
 
     public List<Booking> getAllBookingsByStudentId(Long studentId) {
         return bookingRepository.findByStudentIdOrderByStartTimeDesc(studentId);
+    }
+
+    public void bookSeat(Student student, BookingRequest bookingRequest) {
+        Seat seat = seatRepository.findByRoomIdSeatId(bookingRequest.getRoomId(),bookingRequest.getSeatId())
+                .orElseThrow(() -> new RuntimeException("Seat not found"));
+
+        if (seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
+            throw new RuntimeException("Seat is not available");
+        }
+
+        seat.setStatus(Seat.SeatStatus.OCCUPIED);
+        seatRepository.save(seat);
+
+        Booking booking = new Booking();
+        booking.setStudent(student);
+        booking.setSeat(seat);
+        booking.setStartTime(Instant.ofEpochMilli(bookingRequest.getStartTime()));
+        booking.setEndTime(Instant.ofEpochMilli(bookingRequest.getEndTime()));
+        Room room = roomRepository.findById(bookingRequest.getRoomId())
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+        booking.setRoom(room);
+
+        bookingRepository.save(booking);
     }
 
 //    public void checkIn(Long bookingId, Long studentId) {

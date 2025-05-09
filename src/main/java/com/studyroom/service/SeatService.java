@@ -57,28 +57,6 @@ public class SeatService {
         return seatRepository.save(seat);
     }
 
-    public void bookSeat(Student student, BookingRequest bookingRequest) {
-        Seat seat = seatRepository.findByRoomIdSeatId(bookingRequest.getRoomId(),bookingRequest.getSeatId())
-                .orElseThrow(() -> new RuntimeException("Seat not found"));
-
-        if (seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
-            throw new RuntimeException("Seat is not available");
-        }
-
-        seat.setStatus(Seat.SeatStatus.OCCUPIED);
-        seatRepository.save(seat);
-
-        Booking booking = new Booking();
-        booking.setStudent(student);
-        booking.setSeat(seat);
-        booking.setStartTime(Instant.ofEpochMilli(bookingRequest.getStartTime()));
-        booking.setEndTime(Instant.ofEpochMilli(bookingRequest.getEndTime()));
-        Room room = roomRepository.findById(bookingRequest.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-        booking.setRoom(room);
-
-        bookingRepository.save(booking);
-    }
 
     public void deleteSeat(Long seatId) {
         Seat seat = seatRepository.findById(seatId)
