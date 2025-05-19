@@ -66,14 +66,14 @@ public class StudentController {
     }
 
     @PostMapping("/seats/{seatId}/leave")
-    public ResponseEntity<?> leaveSeat(@PathVariable Long seatId) {
+    public ResponseEntity<?> leaveSeat(@PathVariable Long seatId,Locale locale) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());
 
         roomService.temporaryLeaveSeat(student, seatId);
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Seat set to leave status");
+        response.put("message", messageSource.getMessage("seat.leave", null, locale));
         return ResponseEntity.ok(response);
     }
 
@@ -88,19 +88,19 @@ public class StudentController {
         );
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", messageSource.getMessage("seat.book.success", null, locale));
+        response.put("message", messageSource.getMessage("book.success", null, locale));
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/seats/{seatId}/release")
-    public ResponseEntity<?> releaseSeat(@PathVariable Long seatId) {
+    public ResponseEntity<?> releaseSeat(@PathVariable Long seatId,Locale locale) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());
 
         roomService.releaseSeat(student, seatId);
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Seat released successfully");
+        response.put("message", messageSource.getMessage("seat.release", null, locale));
         return ResponseEntity.ok(response);
     }
 
@@ -160,7 +160,7 @@ public class StudentController {
     }
 
     @PostMapping("/seats/{seatId}/checkin")
-    public ResponseEntity<?> checkInSeat(@PathVariable Long seatId) {
+    public ResponseEntity<?> checkInSeat(@PathVariable Long seatId,Locale locale) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());
 
@@ -168,7 +168,7 @@ public class StudentController {
 //        roomService.checkInSeat(student, seatId);
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Checked in successfully");
+        response.put("message", messageSource.getMessage("seat.checkIn", null, locale));
         return ResponseEntity.ok(response);
     }
 
@@ -196,7 +196,7 @@ public class StudentController {
 
 
     @DeleteMapping("/bookings/{bookingId}")
-    public ResponseEntity<?> cancelBooking(@PathVariable Long bookingId) {
+    public ResponseEntity<?> cancelBooking(@PathVariable Long bookingId,Locale locale) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());
 
@@ -204,18 +204,18 @@ public class StudentController {
             roomService.cancelBooking(student, bookingId);
 
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Booking cancelled successfully");
+            response.put("message",  messageSource.getMessage("book.cancel.success", null, locale));
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> response = new HashMap<>();
-            response.put("error", "Booking not found");
+            response.put("error", messageSource.getMessage("book.notFound", null, locale));
             return ResponseEntity.status(404).body(response);
         }
     }
 
     //每个座位都有临时抢占功能（默认一小时，若所剩空余时间不足一小时则直接抢占所有时间）
     @PostMapping("/seats/{seatId}/occupy-now")
-    public ResponseEntity<?> occupyNow(@PathVariable Long seatId) {
+    public ResponseEntity<?> occupyNow(@PathVariable Long seatId,Locale locale) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(auth.getName());
 
@@ -232,7 +232,7 @@ public class StudentController {
             long minutes1 = ChronoUnit.MINUTES.between(booking.getStartTime(), now);
             long minutes2 = ChronoUnit.MINUTES.between(booking.getEndTime(), now);
             if (minutes1 >= 0&& minutes2 <= 0 ) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "该座位当前不可用"));
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", messageSource.getMessage("seat.occupy.conflict", null, locale)));
             }
             // 设定占用时间段，比如从 now 到下一个整点或配置默认时间（如1小时）
             endTime = now.truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.HOURS);
@@ -256,7 +256,7 @@ public class StudentController {
             bookingRepository.save(booking);
             break;
         }
-        return ResponseEntity.ok(Map.of("message", "座位抢占成功", "startTime", now, "endTime", endTime));
+        return ResponseEntity.ok(Map.of("message", messageSource.getMessage("seat.occupy.success", null, locale), "startTime", now, "endTime", endTime));
     }
 
     //基于预约次数的个性化推荐
