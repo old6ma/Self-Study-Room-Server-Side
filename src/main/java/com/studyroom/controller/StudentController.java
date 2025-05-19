@@ -6,6 +6,9 @@ import com.studyroom.model.Booking;
 import com.studyroom.model.Room;
 import com.studyroom.model.Seat;
 import com.studyroom.model.Student;
+import com.studyroom.repository.BookingRepository;
+import com.studyroom.repository.RoomRepository;
+import com.studyroom.repository.SeatRepository;
 import com.studyroom.service.BookingService;
 import com.studyroom.service.SeatService;
 import com.studyroom.util.JwtUtil;
@@ -20,9 +23,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
@@ -36,6 +42,9 @@ public class StudentController {
     private final RoomService roomService;
     private final BookingService bookingService;
     private final SeatService seatService;
+    private final SeatRepository seatRepository;
+    private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -199,5 +208,51 @@ public class StudentController {
             response.put("error", "Booking not found");
             return ResponseEntity.status(404).body(response);
         }
+    }
+
+    //每个座位都有临时抢占功能（默认一小时，若所剩空余时间不足一小时则直接抢占所有时间）
+    @PostMapping("/seats/{seatId}/occupy-now")
+    public ResponseEntity<?> occupyNow(@PathVariable Long seatId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Student student = studentService.findByUsername(auth.getName());
+
+        Instant now = Instant.now();
+        Instant endTime=Instant.now();
+        List<Booking> bookings = bookingService.getAllBookingsBySeat(seatId);
+
+        // 检查当前是否空闲
+        for (Booking booking : bookings) {
+            Seat seat=booking.getSeat();
+            if (!Objects.equals(seat.getId(), seatId)) {
+                continue;
+            }
+            long minutes1 = ChronoUnit.MINUTES.between(booking.getStartTime(), now);
+            long minutes2 = ChronoUnit.MINUTES.between(booking.getEndTime(), now);
+            if (minutes1 >= 0&& minutes2 <= 0 ) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "该座位当前不可用"));
+            }
+            // 设定占用时间段，比如从 now 到下一个整点或配置默认时间（如1小时）
+            endTime = now.truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.HOURS);
+            if (endTime.isBefore(booking.getStartTime())) {
+                endTime = endTime.plus(1, ChronoUnit.HOURS);
+            }else{
+                endTime=booking.getStartTime();
+            }
+            seat.setStatus(Seat.SeatStatus.OCCUPIED);
+            seatRepository.save(seat);
+
+            Booking new_booking = new Booking();
+            new_booking.setStudent(student);
+            new_booking.setSeat(seat);
+            new_booking.setStartTime(now);
+            new_booking.setEndTime(endTime);
+            Room room = roomRepository.findById(seat.getRoom().getId())
+                    .orElseThrow(() -> new RuntimeException("Room not found"));
+            booking.setRoom(room);
+
+            bookingRepository.save(booking);
+            break;
+        }
+        return ResponseEntity.ok(Map.of("message", "座位抢占成功", "startTime", now, "endTime", endTime));
     }
 }

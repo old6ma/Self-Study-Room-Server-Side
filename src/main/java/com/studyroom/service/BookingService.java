@@ -126,14 +126,33 @@ public class BookingService {
                 notify(booking, "你还未签到，请尽快签到");
             } else if (minutes >= 15 && booking.getStatus()!=Booking.BookingStatus.COMPLETED && !booking.isViolationRecorded()) {
                 booking.setViolationRecorded(true);
+                booking.setStatus(Booking.BookingStatus.CANCELLED);
                 Seat seat = seatRepository.findById(booking.getSeat().getId())
                         .orElseThrow(() -> new RuntimeException("Seat not found"));
                 seat.setStatus(Seat.SeatStatus.AVAILABLE);
-                seatRepository.save(seat);
-                bookingRepository.delete(booking); // 释放座位
+                seatRepository.save(seat);// 释放座位
                 notify(booking, "预约已取消并记录违约");
             }
         }
     }
+
+    //自动把一些已经超出结束时间的预约的座位设置为空闲
+    @Scheduled(fixedRate = 1000)
+    public void handlePassedBookings(){
+        List<Booking> bookings = bookingRepository.findAll();
+        Instant now = Instant.now();
+        for (Booking booking : bookings) {
+            long minutes = ChronoUnit.MINUTES.between(booking.getEndTime(), now);
+            if (minutes>=0){
+                Seat seat = seatRepository.findById(booking.getSeat().getId())
+                        .orElseThrow(() -> new RuntimeException("Seat not found"));
+                if (seat.getStatus()==Seat.SeatStatus.OCCUPIED) {
+                    seat.setStatus(Seat.SeatStatus.AVAILABLE);
+                    seatRepository.save(seat);
+                }
+            }
+        }
+    }
+
 
 }

@@ -99,4 +99,8 @@ public class SeatService {
     public List<Seat> getSeats(Long roomId){
         return seatRepository.findByRoomId(roomId);
     }
+
+    public Seat getSeatById(Long seatId) {
+        return seatRepository.findBySeatId(seatId);
+    }
 }

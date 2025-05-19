@@ -20,4 +20,6 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     @Query("SELECT s FROM Seat s WHERE s.id = :seatId AND s.room.id = :roomId")
     Optional<Seat> findByRoomIdSeatId(@Param("roomId") Long roomId,@Param("seatId") Long seatId);
 
+    @Query("SELECT s FROM Seat s WHERE s.id = :seatId")
+    Seat findBySeatId(@Param("seatId") Long seatId);
 }
