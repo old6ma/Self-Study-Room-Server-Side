@@ -36,6 +36,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findPendingCheckIn(@Param("startWindow") Instant startWindow,
                                      @Param("endWindow") Instant endWindow);
 
-
-
+    //student预约各个seatid的次数
+    @Query("SELECT b.seat.id, COUNT(b) as count " +
+            "FROM Booking b " +
+            "WHERE b.student.id = :studentId " +
+            "GROUP BY b.seat.id " +
+            "ORDER BY count DESC")
+    List<Object[]> findTopSeatsByStudent(@Param("studentId") Long studentId);
 }

@@ -24,7 +24,7 @@ public class Seat {
     private Room room;
 
     @Column(nullable = false)
-    private String seatNumber;
+    private String seatNumber;//区号加序号，如A区1号的seatNumber为A1
 
     private boolean hasSocket;//有无插座
 

@@ -15,6 +15,8 @@ import com.studyroom.util.JwtUtil;
 import com.studyroom.service.RoomService;
 import com.studyroom.service.StudentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,10 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -45,6 +44,10 @@ public class StudentController {
     private final SeatRepository seatRepository;
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
+
+    @Autowired
+    private MessageSource messageSource;
+
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -75,7 +78,7 @@ public class StudentController {
     }
 
     @PostMapping("/seats/book")
-    public ResponseEntity<?> bookSeat(@RequestBody BookingRequest bookingRequest) {
+    public ResponseEntity<?> bookSeat(@RequestBody BookingRequest bookingRequest, Locale locale) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());
 
@@ -85,7 +88,7 @@ public class StudentController {
         );
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Seat booked successfully");
+        response.put("message", messageSource.getMessage("seat.book.success", null, locale));
         return ResponseEntity.ok(response);
     }
 
@@ -254,5 +257,29 @@ public class StudentController {
             break;
         }
         return ResponseEntity.ok(Map.of("message", "座位抢占成功", "startTime", now, "endTime", endTime));
+    }
+
+    //基于预约次数的个性化推荐
+    @GetMapping("/seats/recommend")
+    public ResponseEntity<?> recommendSeats() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Student student = studentService.findByUsername(auth.getName());
+
+        List<Seat> recommendedSeats = seatService.getTopSeatsByStudent(student.getId(), 2);
+
+        List<Map<String, Object>> response = recommendedSeats.stream()
+                .map(seat -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("seat_id", seat.getId());
+                    map.put("seat_name", seat.getSeatName());
+                    map.put("room_id", seat.getRoom().getId());
+                    map.put("room_name", seat.getRoom().getName());
+                    map.put("has_socket", seat.isHasSocket());
+                    map.put("status", seat.getStatus());
+                    return map;
+                })
+                .toList();
+
+        return ResponseEntity.ok(Map.of("recommended_seats", response));
     }
 }

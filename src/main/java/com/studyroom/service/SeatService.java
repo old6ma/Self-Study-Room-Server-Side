@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -102,5 +103,18 @@ public class SeatService {
 
     public Seat getSeatById(Long seatId) {
         return seatRepository.findBySeatId(seatId);
+    }
+
+    public List<Seat> getTopSeatsByStudent(Long studentId, int limit) {
+        List<Object[]> result = bookingRepository.findTopSeatsByStudent(studentId);
+
+        return result.stream()
+                .limit(limit)
+                .map(obj -> {
+                    Long seatId = (Long) obj[0];
+                    return seatRepository.findById(seatId).orElse(null);
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 }
