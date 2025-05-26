@@ -56,15 +56,15 @@ public class StudentController {
 
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest,Locale locale) {
         //  校验两次密码是否一致
         if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "密码和确认密码不一致"));
+                    .body(Map.of("error", messageSource.getMessage("student.register.twoDiffPsw", null, locale)));
         }
         if (studentService.existsByUsername(registerRequest.getUsername())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "Username already exists"));
+                    .body(Map.of("error", messageSource.getMessage("student.register.duplicateUsername", null, locale)));
         }
 
         Student student = new Student();
@@ -76,7 +76,7 @@ public class StudentController {
 
         studentRepository.save(student);
 
-        return ResponseEntity.ok(Map.of("message", "Registration successful"));
+        return ResponseEntity.ok(Map.of("message", messageSource.getMessage("student.register.success", null, locale)));
     }
 
     @PostMapping("/login")
