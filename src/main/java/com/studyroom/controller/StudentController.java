@@ -57,15 +57,22 @@ public class StudentController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        if (studentService.loadUserByUsername(registerRequest.getUsername()).getUsername().isEmpty()) {
+        //  校验两次密码是否一致
+        if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "密码和确认密码不一致"));
+        }
+        if (studentService.existsByUsername(registerRequest.getUsername())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "Username already exists"));
         }
 
         Student student = new Student();
         student.setUsername(registerRequest.getUsername());
-        student.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        student.setRole("ROLE_STUDENT"); // 确保角色是学生
+        student.setPassword(passwordEncoder.encode(registerRequest.getPassword())); // 加密密码
+        student.setName(registerRequest.getName());
+        student.setStudentId(registerRequest.getStudentId());
+        student.setRole("ROLE_USER");
 
         studentRepository.save(student);
 

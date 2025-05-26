@@ -48,6 +48,10 @@ public class StudentService implements UserDetailsService {
         );
     }
 
+    public boolean existsByUsername(String username) {
+        return studentRepository.existsByUsername(username);
+    }
+
     public Student findByUsername(String username) {
         return studentRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Student not found"));
