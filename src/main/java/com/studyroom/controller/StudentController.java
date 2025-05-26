@@ -2,6 +2,7 @@ package com.studyroom.controller;
 
 import com.studyroom.dto.BookingRequest;
 import com.studyroom.dto.LoginRequest;
+import com.studyroom.dto.RegisterRequest;
 import com.studyroom.model.Booking;
 import com.studyroom.model.Room;
 import com.studyroom.model.Seat;
@@ -9,6 +10,7 @@ import com.studyroom.model.Student;
 import com.studyroom.repository.BookingRepository;
 import com.studyroom.repository.RoomRepository;
 import com.studyroom.repository.SeatRepository;
+import com.studyroom.repository.StudentRepository;
 import com.studyroom.service.BookingService;
 import com.studyroom.service.SeatService;
 import com.studyroom.util.JwtUtil;
@@ -23,8 +25,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -44,10 +48,29 @@ public class StudentController {
     private final SeatRepository seatRepository;
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
-
+    private final StudentRepository studentRepository;
     @Autowired
     private MessageSource messageSource;
 
+    private final PasswordEncoder passwordEncoder;
+
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+        if (studentService.loadUserByUsername(registerRequest.getUsername()).getUsername().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "Username already exists"));
+        }
+
+        Student student = new Student();
+        student.setUsername(registerRequest.getUsername());
+        student.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        student.setRole("ROLE_STUDENT"); // 确保角色是学生
+
+        studentRepository.save(student);
+
+        return ResponseEntity.ok(Map.of("message", "Registration successful"));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -57,11 +80,16 @@ public class StudentController {
                         loginRequest.getPassword()
                 )
         );
+        UserDetails userDetails = studentService.loadUserByUsername(loginRequest.getUsername());
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE"); // 默认角色
 
-        String jwt = jwtUtil.generateToken(loginRequest.getUsername());
+        String jwt = jwtUtil.generateToken(loginRequest.getUsername(),role);
         Map<String, String> response = new HashMap<>();
         response.put("token", jwt);
-        System.out.println(loginRequest.getUsername()+loginRequest.getPassword()+"successfully login");
+        System.out.println(loginRequest.getUsername()+loginRequest.getPassword()+"successfully login!!!"+role);
         return ResponseEntity.ok(response);
     }
 

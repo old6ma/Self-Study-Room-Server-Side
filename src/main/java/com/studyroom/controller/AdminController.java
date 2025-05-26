@@ -1,6 +1,7 @@
 package com.studyroom.controller;
 
 import com.studyroom.model.Seat;
+import com.studyroom.repository.SeatRepository;
 import com.studyroom.util.JwtUtil;
 import com.studyroom.dto.*;
 import com.studyroom.model.Booking;
@@ -15,7 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +37,7 @@ public class AdminController {
     private final BookingService bookingService;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final SeatRepository seatRepository;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -44,9 +49,14 @@ public class AdminController {
                             loginRequest.getPassword()
                     )
             );
-
+            UserDetails userDetails = adminService.loadUserByUsername(loginRequest.getUsername());
+            String role = userDetails.getAuthorities().stream()
+                    .findFirst()
+                    .map(GrantedAuthority::getAuthority)
+                    .orElse("ROLE"); // 默认角色
             if (authentication.isAuthenticated()) {
-                String token = jwtUtil.generateToken(loginRequest.getUsername());
+                String token = jwtUtil.generateToken(loginRequest.getUsername(),role);
+                System.out.println(loginRequest.getUsername()+loginRequest.getPassword()+"successfully login!!!"+role);
                 return ResponseEntity.ok(new LoginResponse(token));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -83,6 +93,16 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    //对每个座位都可以更新最大可预约时长
+    @PutMapping("/seats/{seatId}/max-booking-time")
+    public ResponseEntity<?> setMaxBookingTime(@PathVariable Long seatId, @RequestParam Integer minutes) {
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new RuntimeException("Seat not found"));
+        seat.setMaxBookingTime(minutes);
+        seatRepository.save(seat);
+        return ResponseEntity.ok(Map.of("message", "Update maxBookingTime", "maxBookingTime", minutes));
     }
 
     @GetMapping("/rooms")

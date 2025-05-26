@@ -23,4 +23,6 @@ public class Student {
     private String name;
 
     private String studentId; // 学号
+
+    private String role = "ROLE_USER";
 }

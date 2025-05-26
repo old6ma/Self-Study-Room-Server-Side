@@ -30,6 +30,7 @@ public class StudentService implements UserDetailsService {
             student.setUsername("student");
             student.setPassword(passwordEncoder.encode("password"));
             student.setName("Test Student");
+            student.setRole("ROLE_USER");
             student.setStudentId("202500001");
             studentRepository.save(student);
         }

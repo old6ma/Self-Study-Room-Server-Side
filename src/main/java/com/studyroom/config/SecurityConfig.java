@@ -20,6 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.studyroom.util.JwtUtil;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+
+
+
 @Configuration
 @EnableScheduling
 @EnableWebSecurity
@@ -38,9 +41,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/api/v1.0/student/login").permitAll()
-                .requestMatchers("/api/v1.0/student/**").authenticated()
                 .requestMatchers("/api/v1.0/admin/login").permitAll()
-                .requestMatchers("/api/v1.0/admin/**").authenticated()
+                .requestMatchers("/api/v1.0/student/register").permitAll()
+                .requestMatchers("/api/v1.0/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1.0/student/**").hasRole("USER")
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

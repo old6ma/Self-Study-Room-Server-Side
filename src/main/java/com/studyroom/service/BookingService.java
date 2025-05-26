@@ -50,9 +50,10 @@ public class BookingService {
         if (seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
             throw new RuntimeException("Seat is not available");
         }
-
-        seat.setStatus(Seat.SeatStatus.OCCUPIED);
-        seatRepository.save(seat);
+        long durationInMinutes = Duration.between(Instant.ofEpochMilli(bookingRequest.getStartTime()), Instant.ofEpochMilli(bookingRequest.getEndTime())).toMinutes();
+        if (durationInMinutes > seat.getMaxBookingTime()) {
+            throw new RuntimeException("Booking Duration should less than max booking time");
+        }
 
         Booking booking = new Booking();
         booking.setStudent(student);
@@ -64,6 +65,9 @@ public class BookingService {
         booking.setRoom(room);
 
         bookingRepository.save(booking);
+
+        seat.setStatus(Seat.SeatStatus.OCCUPIED);
+        seatRepository.save(seat);
     }
 
 //    public void checkIn(Long bookingId, Long studentId) {

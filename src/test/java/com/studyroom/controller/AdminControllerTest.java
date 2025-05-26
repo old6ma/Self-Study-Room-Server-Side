@@ -106,7 +106,7 @@ public class AdminControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.isAuthenticated()).thenReturn(true);
-        when(jwtUtil.generateToken("admin")).thenReturn("testToken");
+        when(jwtUtil.generateToken("admin","ROLE_ADMIN")).thenReturn("testToken");
 
         // 执行测试
         ResponseEntity<?> response = adminController.login(loginRequest);
