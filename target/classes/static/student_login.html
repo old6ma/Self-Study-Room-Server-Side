@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>学生登录</title>
+</head>
+<body>
+<h2>学生登录</h2>
+<form id="loginForm">
+  <label>用户名: <input type="text" id="username" required></label><br>
+  <label>密码: <input type="password" id="password" required></label><br>
+  <button type="submit">登录</button>
+</form>
+
+<h2>学生注册</h2>
+<form id="registerForm">
+  <label>用户名: <input type="text" id="regUsername" required></label><br>
+  <label>密码: <input type="password" id="regPassword" required></label><br>
+  <label>确认密码: <input type="password" id="regConfirmPassword" required></label><br>
+  <label>姓名: <input type="text" id="regName" required></label><br>
+  <label>学号: <input type="text" id="regStudentId" required></label><br>
+  <button type="submit">注册</button>
+</form>
+
+<script>
+  const baseUrl = "http://localhost:8080/api/v1.0/student";
+
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${baseUrl}/login`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert("登录成功，Token: " + data.token);
+      localStorage.setItem("token", data.token);
+    } else {
+      alert("登录失败: " + (data.error || JSON.stringify(data)));
+    }
+  });
+
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${baseUrl}/register`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: document.getElementById("regUsername").value,
+        password: document.getElementById("regPassword").value,
+        confirmPassword: document.getElementById("regConfirmPassword").value,
+        name: document.getElementById("regName").value,
+        studentId: document.getElementById("regStudentId").value
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert("注册成功: " + data.message);
+    } else {
+      alert("注册失败: " + (data.error || JSON.stringify(data)));
+    }
+  });
+</script>
+</body>
+</html>
