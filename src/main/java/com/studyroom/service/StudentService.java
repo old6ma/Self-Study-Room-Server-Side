@@ -44,7 +44,7 @@ public class StudentService implements UserDetailsService {
         return new User(
                 student.getUsername(),
                 student.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_STUDENT"))
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
         );
     }
 
