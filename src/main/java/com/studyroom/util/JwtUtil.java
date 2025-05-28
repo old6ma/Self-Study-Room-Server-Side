@@ -3,6 +3,7 @@ package com.studyroom.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.lang.Collections;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -12,8 +13,10 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
@@ -31,10 +34,24 @@ public class JwtUtil {
 
     public String generateToken(String username,String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
+        claims.put("authorities", List.of(role));
         return createToken(claims, username);
     }
 
+
+    public List<String> extractAuthorities(String token) {
+        Claims claims = extractAllClaims(token);
+        Object authoritiesClaim = claims.get("authorities");
+
+        if (authoritiesClaim instanceof List<?>) {
+            return ((List<?>) authoritiesClaim).stream()
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .collect(Collectors.toList());
+        }
+
+        return Collections.emptyList();
+    }
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .setClaims(claims)

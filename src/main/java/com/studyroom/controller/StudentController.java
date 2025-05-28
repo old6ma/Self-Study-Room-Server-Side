@@ -91,7 +91,7 @@ public class StudentController {
         String role = userDetails.getAuthorities().stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
-                .orElse("ROLE"); // 默认角色
+                .orElse("ROLE_USER"); // 默认角色
 
         String jwt = jwtUtil.generateToken(loginRequest.getUsername(),role);
         Map<String, String> response = new HashMap<>();
