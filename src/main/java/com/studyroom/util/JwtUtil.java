@@ -42,7 +42,7 @@ public class JwtUtil {
     public List<String> extractAuthorities(String token) {
         Claims claims = extractAllClaims(token);
         Object authoritiesClaim = claims.get("authorities");
-
+        System.out.println("authorities in token: " + claims.get("authorities"));
         if (authoritiesClaim instanceof List<?>) {
             return ((List<?>) authoritiesClaim).stream()
                     .filter(String.class::isInstance)
