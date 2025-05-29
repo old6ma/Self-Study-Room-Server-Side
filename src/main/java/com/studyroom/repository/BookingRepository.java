@@ -28,7 +28,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStudentIdOrderByStartTimeDesc(Long id);
 
     @Query("SELECT b FROM Booking b WHERE b.student.id = :studentId AND :now BETWEEN b.startTime AND b.endTime")
-    Optional<Booking> findCurrentBookingByStudentId(@Param("studentId") Long studentId, @Param("now") Instant now);
+    List<Booking> findCurrentBookingByStudentId(@Param("studentId") Long studentId, @Param("now") Instant now);
+
+//    @Query("SELECT b FROM Booking b " +
+//            "WHERE b.student.id = :studentId " +
+//            "AND :now BETWEEN b.startTime AND b.endTime " +
+//            "AND b.status = :status")
+//    Optional<Booking> findCurrentBookingByStudentId(@Param("studentId") Long studentId,
+//                                                    @Param("now") Instant now,
+//                                                    @Param("status") Booking.BookingStatus status);
 
     @Query("SELECT b FROM Booking b WHERE " +
             "b.status = 'ACTIVE' AND b.violationRecorded = false AND " +

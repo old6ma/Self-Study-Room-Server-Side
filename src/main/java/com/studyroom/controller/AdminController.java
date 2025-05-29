@@ -127,7 +127,7 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("rooms", roomsResponse));
     }
 
-    @PatchMapping("/rooms/{roomId}")
+    @PostMapping("/rooms/update/{roomId}")
     public ResponseEntity<?> updateRoom(@PathVariable Long roomId, @RequestBody RoomRequest roomRequest) {
         try {
             roomService.updateRoom(roomId, roomRequest);
@@ -198,7 +198,7 @@ public class AdminController {
         }
     }
 
-    @PatchMapping("/seats/{seatId}")
+    @PostMapping("/seats/update/{seatId}")
     public ResponseEntity<?> updateSeat(@PathVariable Long seatId, @RequestBody SeatRequest seatRequest) {
         try {
             seatService.updateSeat(seatId, seatRequest);

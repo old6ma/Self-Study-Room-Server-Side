@@ -88,15 +88,19 @@ public class BookingService {
     public void checkIn(Student student,Long seatId) {
         Long studentId = student.getId();
 //        LocalDateTime now = LocalDateTime.now();
-        Instant now = ZonedDateTime.now().toInstant().plusSeconds(8 * 60 * 60);
-        Instant local_now=ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant();
-        System.out.println("Local (CST): " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")));
-        System.out.println("UTC Instant: " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant());
-        System.out.println("Local_now (CST): " + local_now);
-        Booking booking = bookingRepository.findCurrentBookingByStudentId(studentId, now)
+        Instant now = ZonedDateTime.now().toInstant().plusSeconds(8 * 60 * 60).plusSeconds(15*60);
+//        Instant local_now=ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant();
+//        System.out.println("Local (CST): " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")));
+//        System.out.println("UTC Instant: " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant());
+//        System.out.println("Local_now (CST): " + local_now);
+        List<Booking> bookings = bookingRepository.findCurrentBookingByStudentId(studentId, now);
+
+        Booking activeBooking = bookings.stream()
+                .filter(b -> b.getStatus() == Booking.BookingStatus.ACTIVE)
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("当前没有可签到的预约记录"));
 
-        if (booking.getStatus()==Booking.BookingStatus.COMPLETED) {
+        if (activeBooking.getStatus()==Booking.BookingStatus.COMPLETED) {
             throw new RuntimeException("已经签到");
         }
 
@@ -111,9 +115,9 @@ public class BookingService {
         Seat seat1 = seatRepository.findById(seatId)
                 .orElseThrow(() -> new RuntimeException("Seat not found"));
         System.out.println("新状态: " + seat1.getStatus());
-        booking.setStatus(Booking.BookingStatus.COMPLETED);
+        activeBooking.setStatus(Booking.BookingStatus.COMPLETED);
 //        booking.setCheckInTime(LocalDateTime.now());
-        bookingRepository.save(booking);
+        bookingRepository.save(activeBooking);
     }
 
     public void notify(Booking booking, String message) {
