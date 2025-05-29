@@ -5,6 +5,7 @@ import com.studyroom.util.UserAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -44,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1.0/admin/login").permitAll()
                 .requestMatchers("/api/v1.0/student/register").permitAll()
                 .requestMatchers("/api/v1.0/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()//放行所有option请求
                 .requestMatchers("/api/v1.0/student/**").hasRole("USER")
                 .anyRequest().permitAll()
             )

@@ -11,6 +11,7 @@ import com.studyroom.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -82,13 +83,15 @@ public class BookingService {
 ////        booking.setCheckInTime(LocalDateTime.now());
 //        bookingRepository.save(booking);
 //    }
-
+    @Transactional
     public void checkIn(Student student,Long seatId) {
         Long studentId = student.getId();
 //        LocalDateTime now = LocalDateTime.now();
-        Instant now = ZonedDateTime.now().toInstant();
+        Instant now = ZonedDateTime.now().toInstant().plusSeconds(8 * 60 * 60);
+        Instant local_now=ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant();
         System.out.println("Local (CST): " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")));
         System.out.println("UTC Instant: " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant());
+        System.out.println("Local_now (CST): " + local_now);
         Booking booking = bookingRepository.findCurrentBookingByStudentId(studentId, now)
                 .orElseThrow(() -> new RuntimeException("当前没有可签到的预约记录"));
 
@@ -96,7 +99,14 @@ public class BookingService {
             throw new RuntimeException("已经签到");
         }
 
-        roomService.checkInSeat(student, seatId);
+//        roomService.checkInSeat(student, seatId);
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new RuntimeException("Seat not found"));
+//        roomService.validateStudentBooking(student, seatId);
+        System.out.println("旧状态: " + seat.getStatus());
+        seat.setStatus(Seat.SeatStatus.OCCUPIED);
+        System.out.println("新状态: " + seat.getStatus());
+        seatRepository.save(seat);
 
         booking.setStatus(Booking.BookingStatus.COMPLETED);
 //        booking.setCheckInTime(LocalDateTime.now());

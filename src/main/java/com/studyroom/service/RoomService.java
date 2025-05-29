@@ -216,7 +216,7 @@ public class RoomService {
                 .toList();
     }
 
-    private void validateStudentBooking(Student student, Long seatId) {
+    public void validateStudentBooking(Student student, Long seatId) {
         List<Booking> activeBookings = getActiveBookingForSeat(student, seatId);
         if (activeBookings.isEmpty()) {
             throw new RuntimeException("Student has not booked this seat");

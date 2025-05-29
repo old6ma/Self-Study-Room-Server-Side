@@ -1,5 +1,6 @@
 package com.studyroom.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -35,6 +36,7 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     private BookingStatus status = BookingStatus.ACTIVE;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public enum BookingStatus {
         ACTIVE,
         COMPLETED,

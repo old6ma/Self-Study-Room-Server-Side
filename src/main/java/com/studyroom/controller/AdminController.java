@@ -154,6 +154,7 @@ public class AdminController {
                         map.put("name", seat.getSeatName());
                         map.put("status", seat.getStatus());
                         map.put("has_socket",seat.isHasSocket());
+                        map.put("maxBookingTime",seat.getMaxBookingTime());
                         map.put("ordering_list",bookingService.getAllBookingsBySeat(seat.getId()).stream()
                                 .map(booking -> {
                                     Map<String, Object> imap = new HashMap<>();

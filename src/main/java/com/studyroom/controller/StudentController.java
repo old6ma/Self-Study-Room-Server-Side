@@ -153,6 +153,7 @@ public class StudentController {
             entry.put("seat_id", booking.getSeat().getId());
             entry.put("start_time", booking.getStartTime());
             entry.put("end_time", booking.getEndTime());
+            entry.put("status",booking.getStatus());
             return entry;
         }).collect(Collectors.toList());
 

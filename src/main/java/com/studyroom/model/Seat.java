@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Data
 @Entity
@@ -32,6 +33,7 @@ public class Seat {
     private SeatStatus status = SeatStatus.AVAILABLE;
 
     private Integer maxBookingTime = 120; // 默认最大预约时间（分钟）
+
 
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     public enum SeatStatus {
