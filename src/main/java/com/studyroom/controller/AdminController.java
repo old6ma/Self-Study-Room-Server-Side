@@ -216,7 +216,7 @@ public class AdminController {
                 .map(booking -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("room_id", booking.getRoom().getId());
-                    map.put("seat_id", booking.getSeat().getSeatNumber());
+                    map.put("seat_number", booking.getSeat().getSeatNumber());
                     map.put("user_id", booking.getStudent().getStudentId());
                     map.put("start_time", booking.getStartTime());
                     map.put("end_time", booking.getEndTime());

@@ -88,6 +88,10 @@ public class RoomService {
             room.setCloseTime(Instant.ofEpochMilli(roomRequest.getCloseTime()));
         }
 
+        if (roomRequest.getName() != null) {
+            room.setName(roomRequest.getName());
+        }
+
         if (roomRequest.getStatus() != null) {
             room.setStatus(Room.RoomStatus.valueOf(roomRequest.getStatus().toUpperCase()));
         }

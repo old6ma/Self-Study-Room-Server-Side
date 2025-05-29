@@ -178,6 +178,7 @@ public class StudentController {
                         map.put("name", seat.getSeatName());
                         map.put("status", seat.getStatus());
                         map.put("has_socket",seat.isHasSocket());
+                        map.put("maxBookingTime",seat.getMaxBookingTime());
                         map.put("ordering_list",bookingService.getAllBookingsBySeat(seat.getId()).stream()
                                 .map(booking -> {
                                     Map<String, Object> imap = new HashMap<>();
@@ -195,7 +196,7 @@ public class StudentController {
         }
     }
 
-    @PostMapping("/seats/{seatId}/checkin")
+    @GetMapping("/seats/{seatId}/checkin")
     public ResponseEntity<?> checkInSeat(@PathVariable Long seatId,Locale locale) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Student student = studentService.findByUsername(authentication.getName());

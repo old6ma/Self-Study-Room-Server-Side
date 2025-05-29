@@ -105,9 +105,11 @@ public class BookingService {
 //        roomService.validateStudentBooking(student, seatId);
         System.out.println("旧状态: " + seat.getStatus());
         seat.setStatus(Seat.SeatStatus.OCCUPIED);
-        System.out.println("新状态: " + seat.getStatus());
         seatRepository.save(seat);
-
+        seatRepository.flush(); // 强制同步到数据库
+        Seat seat1 = seatRepository.findById(seatId)
+                .orElseThrow(() -> new RuntimeException("Seat not found"));
+        System.out.println("新状态: " + seat1.getStatus());
         booking.setStatus(Booking.BookingStatus.COMPLETED);
 //        booking.setCheckInTime(LocalDateTime.now());
         bookingRepository.save(booking);
