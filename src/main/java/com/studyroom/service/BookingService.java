@@ -59,8 +59,9 @@ public class BookingService {
         Booking booking = new Booking();
         booking.setStudent(student);
         booking.setSeat(seat);
-        booking.setStartTime(Instant.ofEpochMilli(bookingRequest.getStartTime()));
-        booking.setEndTime(Instant.ofEpochMilli(bookingRequest.getEndTime()));
+//        Instant now=Instant.ofEpochMilli(bookingRequest.getStartTime());
+        booking.setStartTime(Instant.ofEpochMilli(bookingRequest.getStartTime()).plusSeconds(8 * 60 * 60));
+        booking.setEndTime(Instant.ofEpochMilli(bookingRequest.getEndTime()).plusSeconds(8 * 60 * 60));
         Room room = roomRepository.findById(bookingRequest.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
         booking.setRoom(room);
