@@ -24,8 +24,9 @@
         <div class="room-title">{{ room.name }}</div>
         <div>位置：{{ room.location }}</div>
         <div>容量：{{ room.capacity }}，可用座位：{{ room.seat_number }}</div>
-        <div>开放时间：{{ formatTime(room.open_time) }} - {{ formatTime(room.close_time) }}</div>
-        <div>状态：{{ room.status }}</div>
+        <div>类型：{{ roomTypeText(room.type) }}</div>
+        <div>开放时间：{{ formatDate(room.open_time) }} - {{ formatDate(room.close_time) }}</div>
+        <div>状态：{{ roomStatusText(room.status) }}</div>
       </li>
     </ul>
     <div class="pagination">
@@ -39,17 +40,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { studentApi } from '../api';
 
-const rooms = ref([
-  { room_id: 1, name: '一号自习室', location: '教学楼A-201', capacity: 30, seat_number: 10, open_time: '2025-05-07T08:00:00Z', close_time: '2025-05-07T22:00:00Z', status: 'AVAILABLE' },
-  { room_id: 2, name: '二号自习室', location: '教学楼B-101', capacity: 50, seat_number: 20, open_time: '2025-05-07T07:00:00Z', close_time: '2025-05-07T23:00:00Z', status: 'AVAILABLE' },
-  { room_id: 3, name: '三号自习室', location: '教学楼C-301', capacity: 20, seat_number: 5, open_time: '2025-05-07T09:00:00Z', close_time: '2025-05-07T20:00:00Z', status: 'AVAILABLE' },
-  { room_id: 4, name: '四号自习室', location: '教学楼D-401', capacity: 40, seat_number: 15, open_time: '2025-05-07T08:00:00Z', close_time: '2025-05-07T22:00:00Z', status: 'AVAILABLE' }
-]);
+const rooms = ref([]);
 const searchText = ref('');
 const page = ref(1);
-const pageSize = 2;
-const filteredRooms = ref([...rooms.value]);
+const pageSize = 10;
+const filteredRooms = ref([]);
 const pagedRooms = computed(() => {
   const start = (page.value - 1) * pageSize;
   return filteredRooms.value.slice(start, start + pageSize);
@@ -57,6 +54,17 @@ const pagedRooms = computed(() => {
 const totalPages = computed(() => Math.ceil(filteredRooms.value.length / pageSize));
 const studentName = localStorage.getItem('studentName') || '演示用户';
 const router = useRouter();
+
+const fetchRooms = async () => {
+  try {
+    const res = await studentApi.getRooms();
+    rooms.value = res.rooms || [];
+    resetSearch();
+  } catch (e) {
+    rooms.value = [];
+    filteredRooms.value = [];
+  }
+};
 
 const searchRooms = () => {
   page.value = 1;
@@ -74,9 +82,9 @@ const nextPage = () => {
   if (page.value < totalPages.value) page.value++;
 };
 const exportRooms = () => {
-  const csv = ['名称,位置,容量,可用座位,开放时间,关闭时间,状态'];
+  const csv = ['名称,位置,容量,可用座位,类型,开放时间,关闭时间,状态'];
   filteredRooms.value.forEach(r => {
-    csv.push(`${r.name},${r.location},${r.capacity},${r.seat_number},${formatTime(r.open_time)},${formatTime(r.close_time)},${r.status}`);
+    csv.push(`${r.name},${r.location},${r.capacity},${r.seat_number},${roomTypeText(r.type)},${formatDate(r.open_time)},${formatDate(r.close_time)},${roomStatusText(r.status)}`);
   });
   const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -94,12 +102,22 @@ const logout = () => {
   localStorage.removeItem('studentName');
   router.push('/login');
 };
-const formatTime = (t) => {
+const roomTypeText = (type) => {
+  if (type === 1) return '普通自习室';
+  if (type === 2) return '研讨室';
+  return '未知类型';
+};
+const roomStatusText = (status) => {
+  if (status === 0) return '开放';
+  if (status === 1) return '关闭';
+  return '未知';
+};
+const formatDate = (t) => {
   if (!t) return '';
   const d = new Date(t);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('zh-CN', { hour12: false });
 };
-onMounted(resetSearch);
+onMounted(fetchRooms);
 </script>
 
 <style scoped>

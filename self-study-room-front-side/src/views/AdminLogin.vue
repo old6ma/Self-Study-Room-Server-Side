@@ -13,21 +13,22 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { adminApi } from '../api';
 
 const username = ref('');
 const password = ref('');
 const error = ref('');
 const router = useRouter();
 
-const handleLogin = () => {
+const handleLogin = async () => {
   error.value = '';
-  // 本地模拟管理员登录
-  if (username.value === 'admin' && password.value === 'admin123') {
-    localStorage.setItem('adminToken', 'mock-admin-token');
-    localStorage.setItem('adminName', '管理员');
+  try {
+    const res = await adminApi.login(username.value, password.value);
+    localStorage.setItem('adminToken', res.token);
+    localStorage.setItem('adminName', res.name || '管理员');
     router.push('/admin');
-  } else {
-    error.value = '用户名或密码错误（演示账号：admin/admin123）';
+  } catch (e) {
+    error.value = e.message || (e.error || '用户名或密码错误');
   }
 };
 </script>

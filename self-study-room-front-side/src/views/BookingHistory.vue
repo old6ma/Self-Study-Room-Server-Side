@@ -9,9 +9,14 @@
     </div>
     <ul v-if="history.length">
       <li v-for="item in history" :key="item.booking_id">
+        <div>预约ID：{{ item.booking_id }}</div>
         <div>自习室ID：{{ item.room_id }}，座位ID：{{ item.seat_id }}</div>
         <div>时间：{{ formatTime(item.start_time) }} - {{ formatTime(item.end_time) }}</div>
-        <button @click="cancelBooking(item.booking_id)">取消预约</button>
+        <div>状态：<span :style="{color: item.status==='CANCELLED' ? 'red' : 'green'}">{{ statusMap[item.status] || item.status }}</span></div>
+        <button v-if="item.status==='ACTIVE'" @click="cancelBooking(item.booking_id)">取消预约</button>
+        <button v-if="item.status==='ACTIVE'" @click="checkIn(item.seat_id)">签到</button>
+        <button v-if="item.status==='ACTIVE'" @click="leaveSeat(item.seat_id)">暂离</button>
+        <button v-if="item.status==='ACTIVE'" @click="releaseSeat(item.seat_id)">释放</button>
         <button @click="rebook(item.seat_id)">再次预约</button>
       </li>
     </ul>
@@ -29,40 +34,35 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { API_BASE } from '../api';
+import { studentApi } from '../api';
 
 const history = ref([]);
 const router = useRouter();
-
-// 新增：搜索、分页、导出相关状态
 const searchKeyword = ref('');
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 const loading = ref(false);
 
-// 获取预约历史（真实接口）
+const statusMap = {
+  'ACTIVE': '进行中',
+  'CANCELLED': '已取消',
+};
+
 const fetchHistory = async () => {
   loading.value = true;
   try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/api/v1.0/booking/history?search=${encodeURIComponent(searchKeyword.value)}&page=${currentPage.value}&size=${pageSize.value}`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' }
-    });
-    const data = await res.json();
-    if (data && data.data) {
-      history.value = data.data.records || [];
-      total.value = data.data.total || 0;
-    }
+    const res = await studentApi.bookingHistory();
+    history.value = res.history || [];
+    total.value = history.value.length;
   } catch (e) {
-    // eslint-disable-next-line
-    console.error(e);
+    history.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
 };
 
-// 导出预约历史为 CSV
 const exportHistory = () => {
   if (!history.value.length) return;
   const header = '预约ID,自习室ID,座位ID,开始时间,结束时间\n';
@@ -77,52 +77,66 @@ const exportHistory = () => {
   URL.revokeObjectURL(url);
 };
 
-// 重置搜索
 const resetSearch = () => {
   searchKeyword.value = '';
   currentPage.value = 1;
   fetchHistory();
 };
 
-// 分页切换
 const handlePageChange = (page) => {
   currentPage.value = page;
   fetchHistory();
 };
 
-// 取消预约（真实接口）
 const cancelBooking = async (bookingId) => {
   if (!confirm('确定要取消该预约吗？')) return;
   try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/api/v1.0/booking/${bookingId}`, {
-      method: 'DELETE',
-      headers: { Authorization: token ? `Bearer ${token}` : '' }
-    });
-    const data = await res.json();
-    if (data.code === 0) {
-      fetchHistory();
-      alert('取消成功');
-    } else {
-      alert(data.msg || '取消失败');
-    }
+    await studentApi.cancelBooking(bookingId);
+    fetchHistory();
+    alert('取消成功');
   } catch (e) {
-    // eslint-disable-next-line
-    console.error(e);
-    alert('取消失败');
+    alert(e.message || '取消失败');
   }
 };
 
-// 再次预约
 const rebook = (seatId) => {
   router.push({ path: '/room-detail', query: { seatId } });
+};
+
+const checkIn = async (seatId) => {
+  try {
+    await studentApi.checkin(seatId);
+    alert('签到成功');
+    fetchHistory();
+  } catch (e) {
+    alert(e.message || '签到失败');
+  }
+};
+const leaveSeat = async (seatId) => {
+  try {
+    await studentApi.leaveSeat(seatId);
+    alert('暂离成功');
+    fetchHistory();
+  } catch (e) {
+    alert(e.message || '暂离失败');
+  }
+};
+const releaseSeat = async (seatId) => {
+  try {
+    await studentApi.releaseSeat(seatId);
+    alert('释放成功');
+    fetchHistory();
+  } catch (e) {
+    alert(e.message || '释放失败');
+  }
 };
 
 const goBack = () => router.push('/');
 const formatTime = (t) => {
   if (!t) return '';
-  const d = new Date(t);
-  return d.toLocaleString();
+  // 注意：后端返回的时间戳已是东八区毫秒数，直接用本地Date显示，不要再加8小时！
+  const d = new Date(Number(t));
+  return d.toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
 };
 
 onMounted(fetchHistory);

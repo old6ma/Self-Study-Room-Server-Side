@@ -26,33 +26,40 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { adminApi } from '../api';
 
-const bookings = ref([
-  { booking_id: 1, room_id: 1, seat_id: 'A1', user_id: '20230001', start_time: '2025-05-27T09:00:00Z', end_time: '2025-05-27T11:00:00Z' },
-  { booking_id: 2, room_id: 2, seat_id: 'B2', user_id: '20230002', start_time: '2025-05-27T13:00:00Z', end_time: '2025-05-27T15:00:00Z' },
-  { booking_id: 3, room_id: 1, seat_id: 'A2', user_id: '20230003', start_time: '2025-05-28T09:00:00Z', end_time: '2025-05-28T11:00:00Z' }
-]);
+const bookings = ref([]);
 const searchText = ref('');
 const page = ref(1);
-const pageSize = 2;
-const filteredBookings = ref([...bookings.value]);
+const pageSize = 10;
+const filteredBookings = ref([]);
 const pagedBookings = computed(() => {
   const start = (page.value - 1) * pageSize;
   return filteredBookings.value.slice(start, start + pageSize);
 });
-const totalPages = computed(() => Math.ceil(filteredBookings.value.length / pageSize));
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredBookings.value.length / pageSize)));
 const router = useRouter();
 
-const deleteBooking = (bookingId) => {
-  bookings.value = bookings.value.filter(b => b.booking_id !== bookingId);
-  resetSearch();
-  alert('删除成功（演示）');
+const fetchBookings = async () => {
+  try {
+    const res = await adminApi.getAllBookings();
+    bookings.value = res.bookings || res.data || res;
+    resetSearch();
+  } catch (e) { console.error(e); }
+};
+
+const deleteBooking = async (bookingId) => {
+  if (!confirm('确定要删除该预约吗？')) return;
+  try {
+    await adminApi.deleteBooking(bookingId);
+    fetchBookings();
+  } catch (e) { console.error(e); }
 };
 const searchBookings = () => {
   page.value = 1;
-  filteredBookings.value = bookings.value.filter(b => b.user_id.includes(searchText.value) || b.seat_id.includes(searchText.value));
+  filteredBookings.value = bookings.value.filter(b => String(b.user_id).includes(searchText.value) || String(b.seat_id).includes(searchText.value));
 };
 const resetSearch = () => {
   searchText.value = '';
@@ -81,9 +88,10 @@ const exportBookings = () => {
 const goBack = () => router.push('/admin');
 const formatTime = (t) => {
   if (!t) return '';
-  const d = new Date(t);
-  return d.toLocaleString();
+  const d = new Date(Number(t));
+  return d.toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
 };
+onMounted(fetchBookings);
 </script>
 
 <style scoped>

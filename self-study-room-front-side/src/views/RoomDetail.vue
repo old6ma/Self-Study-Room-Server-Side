@@ -17,20 +17,18 @@
       <li v-for="seat in pagedSeats" :key="seat.seat_id">
         <div class="seat-title">{{ seat.name }}</div>
         <div>插座：{{ seat.has_socket ? '有' : '无' }}</div>
-        <div>状态：{{ seat.status }}</div>
+        <div>状态：{{ seatStatusText(seat.status) }}</div>
         <div>预约情况：
           <ul>
+            <li v-if="!seat.ordering_list || seat.ordering_list.length === 0">无</li>
             <li v-for="order in seat.ordering_list" :key="order.start_time">
               {{ formatTime(order.start_time) }} - {{ formatTime(order.end_time) }}
             </li>
           </ul>
         </div>
         <div class="seat-actions">
-          <button @click="bookSeat()" :disabled="seat.status !== 'AVAILABLE'">预约</button>
-          <button @click="occupyNow()" :disabled="seat.status !== 'AVAILABLE'">临时抢占</button>
-          <button @click="checkIn()" :disabled="seat.status !== 'OCCUPIED'">签到</button>
-          <button @click="leaveSeat()" :disabled="seat.status !== 'OCCUPIED'">暂离</button>
-          <button @click="releaseSeat()" :disabled="seat.status !== 'OCCUPIED'">释放</button>
+          <button @click="openBookDialog(seat)" :disabled="seat.status !== 'AVAILABLE'">预约</button>
+          <button @click="occupyNow(seat)" :disabled="seat.status !== 'AVAILABLE'">临时抢占</button>
         </div>
       </li>
     </ul>
@@ -40,26 +38,36 @@
       <button @click="nextPage" :disabled="page === totalPages">下一页</button>
     </div>
     <button @click="goBack">返回</button>
+
+    <template v-if="showBookDialog">
+      <div class="dialog-mask">
+        <div class="dialog">
+          <h3>预约座位：{{ bookSeatData.name }}</h3>
+          <div>起始时间：<input type="datetime-local" v-model="bookStart" /></div>
+          <div>结束时间：<input type="datetime-local" v-model="bookEnd" /></div>
+          <div style="margin-top:1em;">
+            <button @click="submitBook">确认预约</button>
+            <button @click="closeBookDialog">取消</button>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { studentApi } from '../api';
 
 const route = useRoute();
 const router = useRouter();
 const room = ref(null);
-const seats = ref([
-  { seat_id: 101, name: 'A1', has_socket: true, status: 'AVAILABLE', ordering_list: [] },
-  { seat_id: 102, name: 'A2', has_socket: false, status: 'OCCUPIED', ordering_list: [{ start_time: '2025-05-27T09:00:00Z', end_time: '2025-05-27T11:00:00Z' }] },
-  { seat_id: 103, name: 'B1', has_socket: true, status: 'AVAILABLE', ordering_list: [] },
-  { seat_id: 104, name: 'B2', has_socket: false, status: 'AVAILABLE', ordering_list: [] }
-]);
+const seats = ref([]);
 const searchText = ref('');
 const page = ref(1);
-const pageSize = 2;
-const filteredSeats = ref([...seats.value]);
+const pageSize = 10;
+const filteredSeats = ref([]);
 const pagedSeats = computed(() => {
   const start = (page.value - 1) * pageSize;
   return filteredSeats.value.slice(start, start + pageSize);
@@ -67,17 +75,27 @@ const pagedSeats = computed(() => {
 const totalPages = computed(() => Math.ceil(filteredSeats.value.length / pageSize));
 
 const fetchRoom = async () => {
-  // 硬编码演示数据
-  const allRooms = [
-    { room_id: 1, name: '一号自习室', location: '教学楼A-201', capacity: 30, open_time: '2025-05-07T08:00:00Z', close_time: '2025-05-07T22:00:00Z', status: 'AVAILABLE' },
-    { room_id: 2, name: '二号自习室', location: '教学楼B-101', capacity: 50, open_time: '2025-05-07T07:00:00Z', close_time: '2025-05-07T23:00:00Z', status: 'AVAILABLE' },
-    { room_id: 3, name: '三号自习室', location: '教学楼C-301', capacity: 20, open_time: '2025-05-07T09:00:00Z', close_time: '2025-05-07T20:00:00Z', status: 'AVAILABLE' }
-  ];
-  room.value = allRooms.find(r => r.room_id == route.params.roomId);
+  try {
+    // 获取所有自习室，找到当前room
+    const res = await studentApi.getRooms();
+    room.value = (res.rooms || []).find(r => r.room_id == route.params.roomId);
+  } catch (e) {
+    room.value = null;
+  }
+};
+const fetchSeats = async () => {
+  try {
+    const res = await studentApi.getSeats(route.params.roomId);
+    seats.value = res.seats || [];
+    resetSearch();
+  } catch (e) {
+    seats.value = [];
+    filteredSeats.value = [];
+  }
 };
 const searchSeats = () => {
   page.value = 1;
-  filteredSeats.value = seats.value.filter(s => s.name.includes(searchText.value));
+  filteredSeats.value = seats.value.filter(s => s.name?.includes(searchText.value));
 };
 const resetSearch = () => {
   searchText.value = '';
@@ -90,10 +108,17 @@ const prevPage = () => {
 const nextPage = () => {
   if (page.value < totalPages.value) page.value++;
 };
+const seatStatusText = (status) => {
+  if (status === 'AVAILABLE') return '可用';
+  if (status === 'OCCUPIED') return '已占用';
+  if (status === 'TEMP_LEAVE') return '暂离';
+  if (status === 'DISABLED') return '禁用';
+  return status;
+};
 const exportSeats = () => {
   const csv = ['座位名称,有插座,状态'];
   filteredSeats.value.forEach(s => {
-    csv.push(`${s.name},${s.has_socket ? '有' : '无'},${s.status}`);
+    csv.push(`${s.name},${s.has_socket ? '有' : '无'},${seatStatusText(s.status)}`);
   });
   const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -103,35 +128,64 @@ const exportSeats = () => {
   a.click();
   URL.revokeObjectURL(url);
 };
-const bookSeat = () => {
-  alert('预约成功（演示）');
-  resetSearch();
+const showBookDialog = ref(false);
+const bookSeatData = ref({});
+const bookStart = ref('');
+const bookEnd = ref('');
+
+const openBookDialog = (seat) => {
+  bookSeatData.value = seat;
+  // 默认起止时间为当前本地时间和+1小时，适配datetime-local控件
+  const now = new Date();
+  const pad = n => n.toString().padStart(2, '0');
+  const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  bookStart.value = toLocalInput(now);
+  const end = new Date(now.getTime() + 60*60*1000);
+  bookEnd.value = toLocalInput(end);
+  showBookDialog.value = true;
 };
-const occupyNow = () => {
-  alert('临时抢占成功（演示）');
-  resetSearch();
+const closeBookDialog = () => {
+  showBookDialog.value = false;
 };
-const checkIn = () => {
-  alert('签到成功（演示）');
-  resetSearch();
+const submitBook = async () => {
+  try {
+    // 直接用本地时间戳，确保与后端东八区一致
+    const start = new Date(bookStart.value);
+    const end = new Date(bookEnd.value);
+    const startTime = start.getTime();
+    const endTime = end.getTime();
+    await studentApi.book({
+      seat_id: bookSeatData.value.seat_id,
+      room_id: room.value.room_id,
+      start_time: startTime,
+      end_time: endTime
+    });
+    alert('预约成功');
+    showBookDialog.value = false;
+    fetchSeats();
+  } catch (e) {
+    alert(e.message || '预约失败');
+  }
 };
-const leaveSeat = () => {
-  alert('暂离成功（演示）');
-  resetSearch();
-};
-const releaseSeat = () => {
-  alert('释放成功（演示）');
-  resetSearch();
+const occupyNow = async (seat) => {
+  try {
+    await studentApi.occupyNow(seat.seat_id);
+    alert('临时抢占成功');
+    fetchSeats();
+  } catch (e) {
+    alert(e.message || '临时抢占失败');
+  }
 };
 const goBack = () => router.push('/');
+// 全局时间格式化函数，强制东八区
 const formatTime = (t) => {
   if (!t) return '';
-  const d = new Date(t);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(Number(t));
+  return d.toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
 };
 onMounted(() => {
   fetchRoom();
-  resetSearch();
+  fetchSeats();
 });
 </script>
 
@@ -144,4 +198,6 @@ onMounted(() => {
 .seat-actions button { margin-right: 0.5em; margin-top: 0.5em; }
 button { margin-right: 1em; margin-top: 0.5em; }
 .pagination { margin-top: 1em; text-align: center; }
+.dialog-mask { position: fixed; left:0; top:0; right:0; bottom:0; background: rgba(0,0,0,0.2); z-index: 1000; }
+.dialog { background: #fff; border-radius: 8px; padding: 2em; max-width: 350px; margin: 10% auto; box-shadow: 0 2px 8px #aaa; }
 </style>

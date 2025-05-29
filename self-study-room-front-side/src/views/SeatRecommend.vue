@@ -16,16 +16,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { studentApi } from '../api';
 
 const seats = ref([]);
 const router = useRouter();
 
 const fetchRecommend = async () => {
-  // 硬编码演示数据
-  seats.value = [
-    { seat_id: 101, seat_name: 'A1', room_id: 1, room_name: '一号自习室', has_socket: true, status: 'AVAILABLE' },
-    { seat_id: 201, seat_name: 'C2', room_id: 2, room_name: '二号自习室', has_socket: false, status: 'AVAILABLE' }
-  ];
+  try {
+    const res = await studentApi.recommendSeats();
+    seats.value = res.recommended_seats || [];
+  } catch (e) {
+    seats.value = [];
+  }
 };
 
 const goRoom = (roomId) => router.push(`/room/${roomId}`);

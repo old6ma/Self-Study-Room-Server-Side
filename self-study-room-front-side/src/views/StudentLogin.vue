@@ -14,6 +14,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { studentApi } from '../api';
 
 const username = ref('');
 const password = ref('');
@@ -22,13 +23,13 @@ const router = useRouter();
 
 const handleLogin = async () => {
   error.value = '';
-  // 临时代码：本地模拟登录
-  if (username.value === 'student' && password.value === '123456') {
-    localStorage.setItem('token', 'mock-token');
-    localStorage.setItem('studentName', '张三');
+  try {
+    const res = await studentApi.login(username.value, password.value);
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('studentName', username.value);
     router.push('/');
-  } else {
-    error.value = '用户名或密码错误（演示账号：student/123456）';
+  } catch (e) {
+    error.value = e.message || '用户名或密码错误';
   }
 };
 </script>

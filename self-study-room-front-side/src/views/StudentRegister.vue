@@ -18,6 +18,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { studentApi } from '../api';
 
 const username = ref('');
 const name = ref('');
@@ -35,12 +36,18 @@ const handleRegister = async () => {
     error.value = '两次密码不一致';
     return;
   }
-  // 临时代码：本地模拟注册
-  if (username.value && name.value && studentId.value && password.value) {
+  try {
+    await studentApi.register({
+      username: username.value,
+      password: password.value,
+      confirm_password: confirmPassword.value, // 修改为下划线
+      name: name.value,
+      student_id: studentId.value // 修改为下划线
+    });
     success.value = '注册成功，请登录';
     setTimeout(() => router.push('/login'), 1200);
-  } else {
-    error.value = '请填写完整信息';
+  } catch (e) {
+    error.value = e.error || e.message || '注册失败';
   }
 };
 </script>
