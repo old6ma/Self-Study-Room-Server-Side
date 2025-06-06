@@ -87,7 +87,7 @@ public class BookingService {
     @Transactional
     public void checkIn(Student student,Long seatId) {
         Long studentId = student.getId();
-//        LocalDateTime now = LocalDateTime.now();
+//        Instant now = ZonedDateTime.now().toInstant()
         Instant now = ZonedDateTime.now().toInstant().plusSeconds(8 * 60 * 60).plusSeconds(15*60);
 //        Instant local_now=ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toInstant();
 //        System.out.println("Local (CST): " + ZonedDateTime.now(ZoneId.of("Asia/Shanghai")));

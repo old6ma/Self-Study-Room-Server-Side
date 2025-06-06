@@ -121,7 +121,7 @@ public class AdminControllerTest {
     void login_ShouldReturnUnauthorized_WhenCredentialsInvalid() {
         // 模拟认证失败
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new RuntimeException("Invalid credentials"));
+                .thenThrow(new RuntimeException("Bad credentials"));
 
         // 执行测试
         ResponseEntity<?> response = adminController.login(loginRequest);
@@ -129,7 +129,7 @@ public class AdminControllerTest {
         // 验证结果
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertTrue(response.getBody() instanceof Map);
-        assertEquals("Invalid credentials", ((Map<?, ?>) response.getBody()).get("error"));
+        assertEquals("Bad credentials", ((Map<?, ?>) response.getBody()).get("error"));
     }
 
     @Test
